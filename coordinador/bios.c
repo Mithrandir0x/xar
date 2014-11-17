@@ -1,7 +1,11 @@
 #include <msp430.h>
 #include <hal.h>
 
+#include "link_control.h"
+
 volatile BASIC_RF_SETTINGS rfSettings;
+
+static LinkControlManager manager;
 
 static BASIC_RF_RX_INFO rfRxInfo;
 static BASIC_RF_TX_INFO rfTxInfo;
@@ -32,10 +36,19 @@ void InitP2_7(void){
 int main(void)
 {
 	int n;
-	// Initalize ports for communication with CC2420 and other peripheral units
+
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer (good dog)
+
+    _disable_interrupt();
+
+    // Initalize ports for communication with CC2420 and other peripheral units
 	PORT_INIT();
 	SPI_INIT();
 	InitP2_7();
+
+	halTimer_a_initialize(TIMER_CLKSRC_SMCLK, TIMER_MODE_UP);
+	// Each 1000 microseconds or each millisecond, a timer interruption will be risen
+	halTimer_a_setTicks(1000);
 
 	// Wait for the user to select node address, and initialize for basic RF operation
 	halWait(1000);
@@ -51,14 +64,17 @@ int main(void)
 	rfTxInfo.pPayload = pTxBuffer;
 	rfRxInfo.pPayload = pRxBuffer;
 
+	lc_initialize(&manager);
+
 	for (n = 0; n < PAYLOAD_SIZE; n++) {
 		pTxBuffer[n] = FILL_UINT8;
 	}
 
 	hal_cc2420_rf_set_receive_on();
 
-	while ( TRUE ) {
+    _enable_interrupt();
 
+	while ( TRUE ) {
 	}
 
 	return 0;
@@ -67,6 +83,16 @@ int main(void)
 BASIC_RF_RX_INFO* basicRfReceivePacket(BASIC_RF_RX_INFO *rxInfo)
 {
 	return rxInfo;
+}
+
+/**
+ * Interruption Handler for Timer A
+ *
+ * This interruption handler uses TACCR0 and CCIFG
+ */
+#pragma vector=TIMERA0_VECTOR
+__interrupt void timer_a_interrupt_handler(){
+	// Do something
 }
 
 #pragma vector=PORT1_VECTOR

@@ -95,7 +95,9 @@ typedef struct {
 typedef struct {
     UINT8 seqNumber;
 	UINT16 srcAddr;
+	UINT16 destAddr;
 	UINT16 srcPanId;
+	UINT16 destPanId;
 	INT8 length;
     UINT8 *pPayload;
 	BOOL ackRequest;

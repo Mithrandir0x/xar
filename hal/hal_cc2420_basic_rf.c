@@ -222,8 +222,9 @@ void hal_cc2420_rf_manage_interruption()
 			// Receive the rest of the packet
 		} else {
 
-			// Skip the destination PAN and address (that's taken care of by harware address recognition!)
-			FASTSPI_READ_FIFO_GARBAGE(4);
+			// Read destination PAN and address (that's taken care of by harware address recognition!)
+			FASTSPI_READ_FIFO_NO_WAIT((UINT8*) &rfSettings.pRxInfo->destPanId, 2);
+			FASTSPI_READ_FIFO_NO_WAIT((UINT8*) &rfSettings.pRxInfo->destAddr, 2);
 
 			// Read the source address
 			FASTSPI_READ_FIFO_NO_WAIT((UINT8*) &rfSettings.pRxInfo->srcAddr, 2);
@@ -236,7 +237,9 @@ void hal_cc2420_rf_manage_interruption()
 			rfSettings.pRxInfo->rssi = pFooter[0];
 
 			// Notify the application about the received _data_ packet if the CRC is OK
-			if (((frameControlField & (BASIC_RF_FCF_BM)) == BASIC_RF_FCF_NOACK) && (pFooter[1] & BASIC_RF_CRC_OK_BM)) {
+			if (((frameControlField & (BASIC_RF_FCF_BM)) == BASIC_RF_FCF_NOACK)
+					&& (pFooter[1] & BASIC_RF_CRC_OK_BM)
+					&& rfSettings.myAddr == rfSettings.pRxInfo->destAddr) {
 				rfSettings.pRxInfo = basicRfReceivePacket(rfSettings.pRxInfo);
 			}
 		}

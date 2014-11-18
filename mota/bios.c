@@ -6,11 +6,8 @@
 #define RF_CHANNEL		15
 #define TX_PERIOD       50  // Packet sent each n'th cycle
 
-#define TICK_RATE 1000
-#define SYNC_TIMEOUT 60000 // 60 * 1000
-
 #define PANID			0x2420
-#define MYADDR			0xCAFE
+#define MYADDR			0xD0D0
 
 #ifdef __ICC430__
 #define FILL_UINT8    0xFF
@@ -20,14 +17,10 @@
 
 volatile BASIC_RF_SETTINGS rfSettings;
 
-static LinkControlManager manager;
-
 static BASIC_RF_RX_INFO rfRxInfo;
 static BASIC_RF_TX_INFO rfTxInfo;
 static UINT8 pTxBuffer[BASIC_RF_MAX_PAYLOAD_SIZE];
 static UINT8 pRxBuffer[BASIC_RF_MAX_PAYLOAD_SIZE];
-
-static UINT32 sync_count = 0;
 
 void InitP2_7(void){
 	P2DIR &= 0x7F;
@@ -50,10 +43,6 @@ int main(void)
 	SPI_INIT();
 	InitP2_7();
 
-	halTimer_a_initialize(TIMER_CLKSRC_SMCLK, TIMER_MODE_UP);
-	// Each 1000 microseconds or each millisecond, a timer interruption will be risen
-	halTimer_a_setTicks(1000);
-
 	// Wait for the user to select node address, and initialize for basic RF operation
 	halWait(1000);
 
@@ -65,8 +54,6 @@ int main(void)
 	rfTxInfo.ackRequest = TRUE;
 	rfTxInfo.pPayload = pTxBuffer;
 	rfRxInfo.pPayload = pRxBuffer;
-
-	lc_initialize(&manager);
 
 	for (n = 0; n < PAYLOAD_SIZE; n++) {
 		pTxBuffer[n] = FILL_UINT8;
@@ -84,7 +71,10 @@ int main(void)
 
 BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_packet(BASIC_RF_RX_INFO *rx)
 {
-	lc_service_update(&manager, &rfTxInfo, rx);
+	if ( rx->pPayload[0] == LC_PCK_BROADCAST_REQUEST )
+	{
+		lc_send_node_response(&rfTxInfo, (UINT8) MYADDR);
+	}
 
 	return rx;
 }
@@ -92,30 +82,6 @@ BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_packet(BASIC_RF_RX_INFO *rx)
 BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_ack_packet(BASIC_RF_RX_INFO *rx)
 {
 	return rx;
-}
-
-/**
- * Interruption Handler for Timer A
- *
- * This interruption handler uses TACCR0 and CCIFG
- */
-#pragma vector=TIMERA0_VECTOR
-__interrupt void timer_a_interrupt_handler()
-{
-	halTimer_a_disableInterrupt();
-
-	if ( manager.work_mode == LC_WM_SYNC )
-	{
-		lc_send_broadcast_request(&rfTxInfo);
-
-		sync_count++;
-		if ( sync_count >= SYNC_TIMEOUT ) lc_set_work_mode(&manager, LC_WM_DATA);
-	}
-	else if ( manager.work_mode == LC_WM_DATA )
-	{
-	}
-
-	halTimer_a_enableInterrupt();
 }
 
 #pragma vector=PORT1_VECTOR

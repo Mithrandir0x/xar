@@ -133,7 +133,7 @@ void hal_cc2420_rf_set_receive_off(void);
 BOOL hal_cc2420_rf_send_packet(BASIC_RF_TX_INFO *pRTI);
 
 //-----------------------------------------------------------------------------------
-//  BASIC_RF_RX_INFO* basicRfReceivePacket(BASIC_RF_RX_INFO *pRRI)
+//  BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_packet(BASIC_RF_RX_INFO *pRRI)
 //
 //  DESCRIPTION:
 //      This function is a part of the basic RF library, but must be declared by the application. Once
@@ -151,7 +151,8 @@ BOOL hal_cc2420_rf_send_packet(BASIC_RF_TX_INFO *pRTI);
 //			The pointer to the next BASIC_RF_RX_INFO structure to be used by the FIFOP ISR. If there is
 //			only one buffer, then return pRRI.
 //-----------------------------------------------------------------------------------
-extern BASIC_RF_RX_INFO* basicRfReceivePacket(BASIC_RF_RX_INFO *pRRI);
+extern BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_packet(BASIC_RF_RX_INFO *rx);
+extern BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_ack_packet(BASIC_RF_RX_INFO *rx);
 
 void hal_cc2420_rf_manage_interruption();
 

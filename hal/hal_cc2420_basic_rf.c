@@ -103,7 +103,7 @@ BOOL hal_cc2420_rf_send_packet(BASIC_RF_TX_INFO *pRTI)
 
 	FASTSPI_STROBE(CC2420_STXONCCA);
 
-   while (!SFD_IS_1);
+	while (!SFD_IS_1);
 
 	// Turn interrupts back on
 	ENABLE_GLOBAL_INT();
@@ -211,7 +211,8 @@ void hal_cc2420_rf_manage_interruption()
 			// Indicate the successful ack reception (this flag is pol by the transmission routine)
 			if (pFooter[1] & BASIC_RF_CRC_OK_BM) {
 				rfSettings.ackReceived = TRUE;
-				rfSettings.pRxInfo = basicRfReceivePacket(rfSettings.pRxInfo);
+				rfSettings.pRxInfo->ackRequest = TRUE;
+				rfSettings.pRxInfo = hal_cc2420_rf_on_receive_ack_packet(rfSettings.pRxInfo);
 			}
 
 			// Too small to be a valid packet?
@@ -240,7 +241,7 @@ void hal_cc2420_rf_manage_interruption()
 			if (((frameControlField & (BASIC_RF_FCF_BM)) == BASIC_RF_FCF_NOACK)
 					&& (pFooter[1] & BASIC_RF_CRC_OK_BM)
 					&& rfSettings.myAddr == rfSettings.pRxInfo->destAddr) {
-				rfSettings.pRxInfo = basicRfReceivePacket(rfSettings.pRxInfo);
+				rfSettings.pRxInfo = hal_cc2420_rf_on_receive_packet(rfSettings.pRxInfo);
 			}
 		}
 	}

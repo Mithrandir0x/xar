@@ -3,6 +3,8 @@
 	<name>coordinador</name>
 	<comment></comment>
 	<projects>
+		<project>hal</project>
+		<project>link_control_protocol</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

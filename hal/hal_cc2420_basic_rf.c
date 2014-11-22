@@ -1,6 +1,23 @@
 #include "hal_common.h"
 #include "hal_cc2420_basic_rf.h"
 
+/**
+ * This macro allows to apply a timeout when waiting for a register going low or high.
+ *
+ * @param c The condition that when set to TRUE it will break the wait
+ * @param t The time to wait before updating the timeout counter
+ * @param x The timeout counter that will be incremented each iteration
+ * @param m The maximum value that the timeout counter will get before breaking the loop
+ */
+#define TIMEOUT(c, t, x, m) \
+	do { \
+		x = 0; \
+		while (c && x < m) { \
+			halWait(t); \
+			x++; \
+		} \
+	} while ( 0 )
+
 void hal_cc2420_rf_init(BASIC_RF_RX_INFO *pRRI, UINT8 channel, UINT16 panId, UINT16 myAddr){
     UINT8 n;
 
@@ -67,6 +84,7 @@ BOOL hal_cc2420_rf_send_packet(BASIC_RF_TX_INFO *pRTI)
     UINT8 packetLength;
     BOOL success;
     UINT8 spiStatusUINT8;
+    UINT8 timeout_counter;
 
     // Wait until the transceiver is idle
     while (FIFOP_IS_1 || SFD_IS_1);
@@ -103,7 +121,16 @@ BOOL hal_cc2420_rf_send_packet(BASIC_RF_TX_INFO *pRTI)
 
 	FASTSPI_STROBE(CC2420_STXONCCA);
 
-	while (!SFD_IS_1);
+	// while (!SFD_IS_1);
+
+	// We have found that while waiting for SFD flag to go low is not detected
+	// and we get deadlocked at this instruction. Therefore, a timeout mechanism
+	// has been applied to ignore the flag and continue with the operation.
+	TIMEOUT(!SFD_IS_1, 5000, timeout_counter, 10);
+
+	if ( timeout_counter >= 10 ) {
+		TOGGLE_RLED();
+	}
 
 	// Turn interrupts back on
 	ENABLE_GLOBAL_INT();
@@ -211,7 +238,6 @@ void hal_cc2420_rf_manage_interruption()
 			// Indicate the successful ack reception (this flag is pol by the transmission routine)
 			if (pFooter[1] & BASIC_RF_CRC_OK_BM) {
 				rfSettings.ackReceived = TRUE;
-				rfSettings.pRxInfo->ackRequest = TRUE;
 				rfSettings.pRxInfo = hal_cc2420_rf_on_receive_ack_packet(rfSettings.pRxInfo);
 			}
 
@@ -240,7 +266,9 @@ void hal_cc2420_rf_manage_interruption()
 			// Notify the application about the received _data_ packet if the CRC is OK
 			if (((frameControlField & (BASIC_RF_FCF_BM)) == BASIC_RF_FCF_NOACK)
 					&& (pFooter[1] & BASIC_RF_CRC_OK_BM)
-					&& rfSettings.myAddr == rfSettings.pRxInfo->destAddr) {
+					&& ( rfSettings.myAddr == rfSettings.pRxInfo->destAddr
+							|| rfSettings.myAddr == 0xFFFF)
+						) {
 				rfSettings.pRxInfo = hal_cc2420_rf_on_receive_packet(rfSettings.pRxInfo);
 			}
 		}

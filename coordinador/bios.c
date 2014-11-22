@@ -6,8 +6,8 @@
 #define RF_CHANNEL		15
 #define TX_PERIOD       50  // Packet sent each n'th cycle
 
-#define TICK_RATE 1000
-#define SYNC_TIMEOUT 60000 // 60 * 1000
+#define TICK_RATE 50000
+#define SYNC_TIMEOUT 350
 
 #define PANID			0x2420
 #define MYADDR			0xCAFE
@@ -28,6 +28,8 @@ static UINT8 pTxBuffer[BASIC_RF_MAX_PAYLOAD_SIZE];
 static UINT8 pRxBuffer[BASIC_RF_MAX_PAYLOAD_SIZE];
 
 static UINT32 sync_count = 0;
+
+static BOOL update_lc_service = TRUE;
 
 void InitP2_7(void){
 	P2DIR &= 0x7F;
@@ -52,7 +54,7 @@ int main(void)
 
 	halTimer_a_initialize(TIMER_CLKSRC_SMCLK, TIMER_MODE_UP);
 	// Each 1000 microseconds or each millisecond, a timer interruption will be risen
-	halTimer_a_setTicks(1000);
+	halTimer_a_setTicks(TICK_RATE);
 
 	// Wait for the user to select node address, and initialize for basic RF operation
 	halWait(1000);
@@ -75,8 +77,13 @@ int main(void)
 	hal_cc2420_rf_set_receive_on();
 
     _enable_interrupt();
+    halTimer_a_enableInterrupt();
 
 	while ( TRUE ) {
+		if ( update_lc_service ) {
+			lc_sending_service_update(&manager, &rfTxInfo, &rfRxInfo);
+			update_lc_service = FALSE;
+		}
 	}
 
 	return 0;
@@ -84,7 +91,7 @@ int main(void)
 
 BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_packet(BASIC_RF_RX_INFO *rx)
 {
-	lc_service_update(&manager, &rfTxInfo, rx);
+	lc_reception_service_update(&manager, &rfTxInfo, rx);
 
 	return rx;
 }
@@ -106,13 +113,14 @@ __interrupt void timer_a_interrupt_handler()
 
 	if ( manager.work_mode == LC_WM_SYNC )
 	{
-		lc_send_broadcast_request(&rfTxInfo);
+		update_lc_service = TRUE;
 
-		sync_count++;
+		//sync_count++;
 		if ( sync_count >= SYNC_TIMEOUT ) lc_set_work_mode(&manager, LC_WM_DATA);
 	}
 	else if ( manager.work_mode == LC_WM_DATA )
 	{
+		SET_BLED();
 	}
 
 	halTimer_a_enableInterrupt();

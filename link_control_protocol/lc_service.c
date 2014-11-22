@@ -1,6 +1,7 @@
 #include "lc_service.h"
+#include "lc_protocol.h"
 
-static BOOL is_device_in_routing_table(LinkControlManager *manager, UINT8 addr)
+static BOOL is_device_in_routing_table(LinkControlManager *manager, UINT16 addr)
 {
 	UINT8 i;
 	for ( i = 0 ; i < LC_MAX_DEVICES ; i++ )
@@ -29,7 +30,25 @@ void lc_set_work_mode(LinkControlManager *manager, UINT8 work_mode)
 	manager->work_mode = work_mode;
 }
 
-void lc_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *tx, BASIC_RF_RX_INFO *rx)
+void lc_sending_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *tx, BASIC_RF_RX_INFO *rx)
+{
+	UINT8 status;
+
+	if ( manager->work_mode == LC_WM_SYNC )
+	{
+		FASTSPI_UPD_STATUS(status);
+
+		lc_set_tx_broadcast_request(tx);
+		hal_cc2420_rf_send_packet(tx);
+
+		TOGGLE_BLED();
+	}
+	else if ( manager->work_mode == LC_WM_DATA )
+	{
+	}
+}
+
+void lc_reception_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *tx, BASIC_RF_RX_INFO *rx)
 {
 	if ( manager->work_mode == LC_WM_SYNC )
 	{

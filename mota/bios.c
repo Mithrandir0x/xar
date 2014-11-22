@@ -22,6 +22,11 @@ static BASIC_RF_TX_INFO rfTxInfo;
 static UINT8 pTxBuffer[BASIC_RF_MAX_PAYLOAD_SIZE];
 static UINT8 pRxBuffer[BASIC_RF_MAX_PAYLOAD_SIZE];
 
+static UINT16 coordinator_address = 0x0000;
+static BOOL send_request = FALSE;
+static BOOL sent_request = FALSE;
+static BOOL registered = FALSE;
+
 void InitP2_7(void){
 	P2DIR &= 0x7F;
 	P2SEL &= BIT7;
@@ -32,6 +37,7 @@ void InitP2_7(void){
 
 int main(void)
 {
+	UINT8 status;
 	int n;
 
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer (good dog)
@@ -64,6 +70,21 @@ int main(void)
     _enable_interrupt();
 
 	while ( TRUE ) {
+		if ( send_request == TRUE ) {
+
+			FASTSPI_UPD_STATUS(status);
+
+			lc_set_tx_node_response(&rfTxInfo, coordinator_address);
+			sent_request = TRUE;
+			hal_cc2420_rf_send_packet(&rfTxInfo);
+
+			send_request = FALSE;
+		}
+
+		if ( registered == TRUE )
+		{
+			CLR_YLED();
+		}
 	}
 
 	return 0;
@@ -73,7 +94,8 @@ BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_packet(BASIC_RF_RX_INFO *rx)
 {
 	if ( rx->pPayload[0] == LC_PCK_BROADCAST_REQUEST )
 	{
-		lc_send_node_response(&rfTxInfo, (UINT8) MYADDR);
+		coordinator_address = rx->srcAddr;
+		send_request = TRUE;
 	}
 
 	return rx;
@@ -81,6 +103,11 @@ BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_packet(BASIC_RF_RX_INFO *rx)
 
 BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_ack_packet(BASIC_RF_RX_INFO *rx)
 {
+	if ( sent_request == TRUE )
+	{
+		registered = TRUE;
+	}
+
 	return rx;
 }
 

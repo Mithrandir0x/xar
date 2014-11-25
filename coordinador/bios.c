@@ -70,6 +70,10 @@ int main(void)
 
 	lc_initialize(&manager);
 
+	SET_YLED();
+	SET_BLED();
+	SET_RLED();
+
 	for (n = 0; n < PAYLOAD_SIZE; n++) {
 		pTxBuffer[n] = FILL_UINT8;
 	}

@@ -23,10 +23,17 @@
 
 typedef struct {
 	UINT16 addr;
+	BOOL ready;
+	UINT32 humidity;
+	UINT32 temperature;
+	UINT32 luminiscense;
+	UINT32 radiation;
 } RoutingTableEntry;
 
 typedef struct {
 	UINT8 work_mode;
+	UINT8 next_device_ask;
+	BOOL all_devices_slept;
 	UINT8 connected_devices;
 	RoutingTableEntry devices[LC_MAX_DEVICES];
 } LinkControlManager;

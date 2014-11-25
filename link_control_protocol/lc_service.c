@@ -12,12 +12,24 @@ static BOOL is_device_in_routing_table(LinkControlManager *manager, UINT16 addr)
 	return FALSE;
 }
 
+static int get_device(LinkControlManager *manager, UINT16 addr)
+{
+	UINT8 i;
+	for ( i = 0 ; i < LC_MAX_DEVICES ; i++ )
+	{
+		if ( manager->devices[i].addr == addr ) return i;
+	}
+
+	return -1;
+}
+
 void lc_initialize(LinkControlManager *manager)
 {
 	UINT8 i;
 
 	manager->work_mode = LC_WM_SYNC;
 	manager->connected_devices = 0;
+	manager->next_device_ask = 0;
 
 	for ( i = 0 ; i < LC_MAX_DEVICES ; i++ )
 	{
@@ -40,12 +52,39 @@ void lc_sending_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *tx
 
 		lc_set_tx_broadcast_request(tx);
 		hal_cc2420_rf_send_packet(tx);
-
-		TOGGLE_BLED();
 	}
 	else if ( manager->work_mode == LC_WM_DATA )
 	{
+		if ( manager->all_devices_slept )
+		{
+			FASTSPI_UPD_STATUS(status);
+
+			lc_set_tx_data_request(tx, manager->devices[manager->next_device_ask].addr);
+			hal_cc2420_rf_send_packet(tx);
+
+			manager->next_device_ask++;
+			if ( manager->next_device_ask < manager->connected_devices )
+			{
+				manager->next_device_ask = 0;
+			}
+		}
+		else
+		{
+			FASTSPI_UPD_STATUS(status);
+
+			lc_set_tx_start_vrt(tx, manager->devices[manager->next_device_ask].addr);
+			hal_cc2420_rf_send_packet(tx);
+
+			manager->next_device_ask++;
+			if ( manager->next_device_ask < manager->connected_devices )
+			{
+				manager->next_device_ask = 0;
+				manager->all_devices_slept = TRUE;
+			}
+		}
 	}
+
+	TOGGLE_BLED();
 }
 
 void lc_reception_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *tx, BASIC_RF_RX_INFO *rx)
@@ -66,5 +105,26 @@ void lc_reception_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *
 	}
 	else if ( manager->work_mode == LC_WM_DATA )
 	{
+		if ( manager->all_devices_slept )
+		{
+			if ( rx->pPayload[0] == LC_PCK_VRT_STARTED )
+			{
+				int i = get_device(manager, rx->srcAddr);
+				if ( i != -1 )
+				{
+					RoutingTableEntry entry = manager->devices[i];
+					entry.ready = TRUE;
+				}
+			}
+		}
+
+		if ( rx->pPayload[0] == LC_PCK_DATA_RESPONSE )
+		{
+			int i = get_device(manager, rx->srcAddr);
+			if ( i != -1 )
+			{
+				//RoutingTableEntry entry = manager->devices[i];
+			}
+		}
 	}
 }

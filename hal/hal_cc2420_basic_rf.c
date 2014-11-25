@@ -126,7 +126,7 @@ BOOL hal_cc2420_rf_send_packet(BASIC_RF_TX_INFO *pRTI)
 	// We have found that while waiting for SFD flag to go low is not detected
 	// and we get deadlocked at this instruction. Therefore, a timeout mechanism
 	// has been applied to ignore the flag and continue with the operation.
-	TIMEOUT(!SFD_IS_1, 5000, timeout_counter, 10);
+	TIMEOUT(!SFD_IS_1, 500, timeout_counter, 10);
 
 	if ( timeout_counter >= 10 ) {
 		TOGGLE_RLED();
@@ -267,8 +267,7 @@ void hal_cc2420_rf_manage_interruption()
 			if (((frameControlField & (BASIC_RF_FCF_BM)) == BASIC_RF_FCF_NOACK)
 					&& (pFooter[1] & BASIC_RF_CRC_OK_BM)
 					&& ( rfSettings.myAddr == rfSettings.pRxInfo->destAddr
-							|| rfSettings.myAddr == 0xFFFF)
-						) {
+							|| 0xFFFF == rfSettings.pRxInfo->destAddr ) ) {
 				rfSettings.pRxInfo = hal_cc2420_rf_on_receive_packet(rfSettings.pRxInfo);
 			}
 		}

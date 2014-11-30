@@ -70,6 +70,11 @@ int main(void)
 
 	lc_initialize(&manager);
 
+	//lc_set_work_mode(&manager, LC_WM_DATA);
+	//manager.all_devices_slept = TRUE;
+	//lc_register_device(&manager, 0xB00B);
+	//lc_register_device(&manager, 0xBABE);
+
 	SET_YLED();
 	SET_BLED();
 	SET_RLED();
@@ -117,20 +122,29 @@ __interrupt void timer_a_interrupt_handler()
 
 	if ( manager.work_mode == LC_WM_SYNC )
 	{
-		update_lc_service = TRUE;
-
 		//sync_count++;
 		if ( sync_count >= SYNC_TIMEOUT ) lc_set_work_mode(&manager, LC_WM_DATA);
 	}
-	else if ( manager.work_mode == LC_WM_DATA )
+	else
 	{
-		SET_BLED();
+		TOGGLE_YLED();
 	}
+
+	update_lc_service = TRUE;
 
 	halTimer_a_enableInterrupt();
 }
 
 #pragma vector=PORT1_VECTOR
-__interrupt void fifo_rx(void){
+__interrupt void fifo_rx(void)
+{
 	hal_cc2420_rf_manage_interruption();
+}
+
+#pragma vector=PORT2_VECTOR
+__interrupt void P2_ISR(void)
+{
+	P2IFG &= 0x7F;//clear flag from user button
+
+	lc_set_work_mode(&manager, LC_WM_DATA);
 }

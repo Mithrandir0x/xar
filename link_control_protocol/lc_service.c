@@ -30,10 +30,22 @@ void lc_initialize(LinkControlManager *manager)
 	manager->work_mode = LC_WM_SYNC;
 	manager->connected_devices = 0;
 	manager->next_device_ask = 0;
+	manager->all_devices_slept = FALSE;
 
 	for ( i = 0 ; i < LC_MAX_DEVICES ; i++ )
 	{
 		manager->devices[i].addr = 0x0000;
+		manager->devices[i].ready = FALSE;
+		manager->devices[i].temperature = 0x00000000;
+	}
+}
+
+void lc_register_device(LinkControlManager *manager, UINT16 addr)
+{
+	if ( manager->connected_devices < LC_MAX_DEVICES && !is_device_in_routing_table(manager, addr) )
+	{
+		manager->devices[manager->connected_devices].addr = addr;
+		manager->connected_devices++;
 	}
 }
 
@@ -61,12 +73,6 @@ void lc_sending_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *tx
 
 			lc_set_tx_data_request(tx, manager->devices[manager->next_device_ask].addr);
 			hal_cc2420_rf_send_packet(tx);
-
-			manager->next_device_ask++;
-			if ( manager->next_device_ask < manager->connected_devices )
-			{
-				manager->next_device_ask = 0;
-			}
 		}
 		else
 		{
@@ -74,13 +80,12 @@ void lc_sending_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *tx
 
 			lc_set_tx_start_vrt(tx, manager->devices[manager->next_device_ask].addr);
 			hal_cc2420_rf_send_packet(tx);
+		}
 
-			manager->next_device_ask++;
-			if ( manager->next_device_ask < manager->connected_devices )
-			{
-				manager->next_device_ask = 0;
-				manager->all_devices_slept = TRUE;
-			}
+		manager->next_device_ask++;
+		if ( manager->next_device_ask >= manager->connected_devices )
+		{
+			manager->next_device_ask = 0;
 		}
 	}
 
@@ -89,32 +94,30 @@ void lc_sending_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *tx
 
 void lc_reception_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *tx, BASIC_RF_RX_INFO *rx)
 {
+	RoutingTableEntry *entry;
+
 	if ( manager->work_mode == LC_WM_SYNC )
 	{
 		if ( rx->pPayload[0] == LC_PCK_NODE_RESPONSE )
 		{
-			if ( manager->connected_devices < LC_MAX_DEVICES )
-			{
-				if ( !is_device_in_routing_table(manager, rx->srcAddr) )
-				{
-					manager->devices[manager->connected_devices].addr = rx->srcAddr;
-					manager->connected_devices++;
-				}
-			}
+			lc_register_device(manager, rx->srcAddr);
 		}
 	}
 	else if ( manager->work_mode == LC_WM_DATA )
 	{
-		if ( manager->all_devices_slept )
+		if ( rx->pPayload[0] == LC_PCK_VRT_STARTED )
 		{
-			if ( rx->pPayload[0] == LC_PCK_VRT_STARTED )
+			int i = get_device(manager, rx->srcAddr);
+			if ( i != -1 )
 			{
-				int i = get_device(manager, rx->srcAddr);
-				if ( i != -1 )
-				{
-					RoutingTableEntry entry = manager->devices[i];
-					entry.ready = TRUE;
+				entry = &(manager->devices[i]);
+				entry->ready = TRUE;
+
+				for ( i = 0 ; i < manager->connected_devices ; i++ ) {
+					if ( manager->devices[i].ready == FALSE ) return;
 				}
+
+				manager->all_devices_slept = TRUE;
 			}
 		}
 
@@ -123,7 +126,12 @@ void lc_reception_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *
 			int i = get_device(manager, rx->srcAddr);
 			if ( i != -1 )
 			{
-				//RoutingTableEntry entry = manager->devices[i];
+				int i = get_device(manager, rx->srcAddr);
+				if ( i != -1 )
+				{
+					entry = &(manager->devices[i]);
+					entry->temperature = rx->pPayload[1];
+				}
 			}
 		}
 	}

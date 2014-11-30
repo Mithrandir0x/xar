@@ -45,16 +45,13 @@ void lc_set_tx_data_request(BASIC_RF_TX_INFO *tx, UINT16 destAddr)
 	tx->pPayload[0] = LC_PCK_DATA_REQUEST;
 }
 
-void lc_set_tx_data_response(BASIC_RF_TX_INFO *tx, UINT16 destAddr, UINT32 humidity, UINT32 temperature, UINT32 luminiscense, UINT32 radiation)
+void lc_set_tx_data_response(BASIC_RF_TX_INFO *tx, UINT16 destAddr, UINT32 humidity, UINT32 temperature)
 {
 	tx->destPanId = rfSettings.panId;
 	tx->ackRequest = TRUE;
 	tx->destAddr = destAddr;
-	tx->length = 17;
+	tx->length = 5;
 	tx->pPayload[0] = LC_PCK_DATA_RESPONSE;
 	tx->pPayload[1] = humidity;
-	tx->pPayload[5] = temperature;
-	tx->pPayload[9] = luminiscense;
-	tx->pPayload[13] = radiation;
 
 }

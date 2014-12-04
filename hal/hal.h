@@ -6,6 +6,7 @@
 #include "hal_cc2420.h"
 #include "hal_cc2420_msp430FET.h"
 #include "hal_cc2420_basic_rf.h"
+#include "hal_sht11.h"
 #include "hal_timer.h"
 
 #endif

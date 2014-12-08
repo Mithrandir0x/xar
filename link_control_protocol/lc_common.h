@@ -24,10 +24,10 @@
 typedef struct {
 	UINT16 addr;
 	BOOL ready;
-	UINT32 humidity;
-	UINT32 temperature;
-	UINT32 luminiscense;
-	UINT32 radiation;
+	UINT16 humidity;
+	UINT16 temperature;
+	UINT16 luminiscense;
+	UINT16 radiation;
 } RoutingTableEntry;
 
 typedef struct {

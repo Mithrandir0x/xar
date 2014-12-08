@@ -130,7 +130,7 @@ void lc_reception_service_update(LinkControlManager *manager, BASIC_RF_TX_INFO *
 				if ( i != -1 )
 				{
 					entry = &(manager->devices[i]);
-					entry->temperature = rx->pPayload[1];
+					entry->temperature = rx->pPayload[1] << 8 | rx->pPayload[2];
 				}
 			}
 		}

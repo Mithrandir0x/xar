@@ -27,3 +27,5 @@ RemoteSystemsTempFiles
 
 # Project thingies
 wlan_station
+file_download
+httpserver

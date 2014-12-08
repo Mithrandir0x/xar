@@ -11,6 +11,6 @@ void lc_set_tx_start_vrt(BASIC_RF_TX_INFO *tx, UINT16 destAddr);
 void lc_set_tx_vrt_started(BASIC_RF_TX_INFO *tx, UINT16 destAddr);
 
 void lc_set_tx_data_request(BASIC_RF_TX_INFO *tx, UINT16 destAddr);
-void lc_set_tx_data_response(BASIC_RF_TX_INFO *tx, UINT16 destAddr, UINT32 humidity, UINT32 temperature);
+void lc_set_tx_data_response(BASIC_RF_TX_INFO *tx, UINT16 destAddr, UINT16 temperature);
 
 #endif

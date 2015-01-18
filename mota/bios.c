@@ -6,7 +6,7 @@
 #define RF_CHANNEL		15
 #define TX_PERIOD       50  // Packet sent each n'th cycle
 
-#define TICK_RATE 50000		//aprox 50ms (conjetura)
+#define TICK_RATE 50000		//aprox 50ms
 
 #define PANID			0x2420
 #define MYADDR			0xD0D0
@@ -96,7 +96,7 @@ BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_packet(BASIC_RF_RX_INFO *rx)
 
 BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_ack_packet(BASIC_RF_RX_INFO *rx)
 {
-	if ( manager->work_mode == LC_WM_CLIENT_SYNC )
+	if ( manager.work_mode == LC_WM_CLIENT_SYNC )
 	{
 		TOGGLE_YLED();
 		lc_set_work_mode_client(&manager, LC_WM_CLIENT_WAIT_VRT);

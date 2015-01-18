@@ -47,11 +47,13 @@ void lc_sending_service_update_client(LinkControlClientManager *manager, BASIC_R
 	else if ( manager->work_mode == LC_WM_CLIENT_SEND_DATA)
 	{
 		FASTSPI_UPD_STATUS(status);
-
-		lc_set_tx_data_response(tx, manager->coordinator_address, 0x0010);
+		sht11_init();
+		lc_set_tx_data_response(tx, manager->coordinator_address, sht11_temp());
+		sht11_off();
 		hal_cc2420_rf_send_packet(tx);
 		lc_set_work_mode_client(manager, LC_WM_CLIENT_WAIT);
 		TOGGLE_RLED();
+
 	}
 
 

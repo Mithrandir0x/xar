@@ -16,16 +16,13 @@
 #endif
 
 volatile BASIC_RF_SETTINGS rfSettings;
-
+static LinkControlClientManager manager;
 static BASIC_RF_RX_INFO rfRxInfo;
 static BASIC_RF_TX_INFO rfTxInfo;
 static UINT8 pTxBuffer[BASIC_RF_MAX_PAYLOAD_SIZE];
 static UINT8 pRxBuffer[BASIC_RF_MAX_PAYLOAD_SIZE];
 
 static UINT16 coordinator_address = 0x0000;
-static BOOL send_request = FALSE;
-static BOOL sent_request = FALSE;
-static BOOL registered = FALSE;
 
 void InitP2_7(void){
 	P2DIR &= 0x7F;
@@ -49,6 +46,7 @@ int main(void)
 	SPI_INIT();
 	InitP2_7();
 
+
 	// Wait for the user to select node address, and initialize for basic RF operation
 	halWait(1000);
 
@@ -57,7 +55,7 @@ int main(void)
 
 	// Initalize common protocol parameters
 	rfTxInfo.length = PAYLOAD_SIZE;
-	rfTxInfo.ackRequest = TRUE;
+	rfTxInfo.ackRequest = FALSE;
 	rfTxInfo.pPayload = pTxBuffer;
 	rfRxInfo.pPayload = pRxBuffer;
 
@@ -67,24 +65,16 @@ int main(void)
 
 	hal_cc2420_rf_set_receive_on();
 
+	SET_YLED(); 	//Yellow LED: Indicates received ACK from node response
+	SET_BLED();		//Blue LED: Low energy mode activated
+	SET_RLED();		//Red LED: Sent temperature packet
+
     _enable_interrupt();
 
+    lc_initialize_client(&manager);
+
 	while ( TRUE ) {
-		if ( send_request == TRUE ) {
-
-			FASTSPI_UPD_STATUS(status);
-
-			lc_set_tx_node_response(&rfTxInfo, coordinator_address);
-			sent_request = TRUE;
-			hal_cc2420_rf_send_packet(&rfTxInfo);
-
-			send_request = FALSE;
-		}
-
-		if ( registered == TRUE )
-		{
-			CLR_YLED();
-		}
+		lc_sending_service_update_client(&manager, &rfTxInfo, &rfRxInfo);
 	}
 
 	return 0;
@@ -92,20 +82,17 @@ int main(void)
 
 BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_packet(BASIC_RF_RX_INFO *rx)
 {
-	if ( rx->pPayload[0] == LC_PCK_BROADCAST_REQUEST )
-	{
-		coordinator_address = rx->srcAddr;
-		send_request = TRUE;
-	}
+	lc_reception_service_update_client(&manager, &rfTxInfo, rx);
 
 	return rx;
 }
 
 BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_ack_packet(BASIC_RF_RX_INFO *rx)
 {
-	if ( sent_request == TRUE )
+	if ( manager->work_mode == LC_WM_CLIENT_SYNC )
 	{
-		registered = TRUE;
+		TOGGLE_YLED();
+		lc_set_work_mode_client(&manager, LC_WM_CLIENT_WAIT_VRT);
 	}
 
 	return rx;
@@ -115,3 +102,15 @@ BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_ack_packet(BASIC_RF_RX_INFO *rx)
 __interrupt void fifo_rx(void){
 	hal_cc2420_rf_manage_interruption();
 }
+
+// Send temperature when button 2 is pressed
+#pragma vector=PORT2_VECTOR
+__interrupt void P2_ISR(void)
+{
+	P2IFG &= 0x7F;//clear flag from user button
+
+//	if (manager->work_mode == LC_WM_CLIENT_WAIT)
+//		lc_set_work_mode_client(&manager, LC_WM_CLIENT_SEND_DATA);
+
+}
+

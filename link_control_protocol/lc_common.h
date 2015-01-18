@@ -8,8 +8,15 @@
 /**
  * Working Modes
  */
-#define LC_WM_SYNC 1
-#define LC_WM_DATA 2
+#define LC_WM_SYNC 1 				// Synchro coordinator mode
+#define LC_WM_DATA 2 				// Reception coordinator mode
+
+#define LC_WM_CLIENT_STARTED 1 		// Start mode
+#define LC_WM_CLIENT_SYNC 2 		// Synchro client mode
+#define LC_WM_CLIENT_WAIT_VRT 3		// Wait VRT client mode
+#define LC_WM_CLIENT_SEND_VRT 4		// VRT send mode
+#define LC_WM_CLIENT_WAIT 5 		// Wait client mode
+#define LC_WM_CLIENT_SEND_DATA 6 	// Send client mode
 
 /**
  * Link Control Packet Definitions
@@ -32,10 +39,17 @@ typedef struct {
 
 typedef struct {
 	UINT8 work_mode;
+	BOOL coordinator_address;
+} LinkControlClientManager;
+
+typedef struct {
+	UINT8 work_mode;
 	UINT8 next_device_ask;
 	BOOL all_devices_slept;
 	UINT8 connected_devices;
 	RoutingTableEntry devices[LC_MAX_DEVICES];
 } LinkControlManager;
+
+
 
 #endif

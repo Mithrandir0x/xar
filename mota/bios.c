@@ -6,6 +6,8 @@
 #define RF_CHANNEL		15
 #define TX_PERIOD       50  // Packet sent each n'th cycle
 
+#define TICK_RATE 50000		//aprox 50ms (conjetura)
+
 #define PANID			0x2420
 #define MYADDR			0xD0D0
 
@@ -22,7 +24,7 @@ static BASIC_RF_TX_INFO rfTxInfo;
 static UINT8 pTxBuffer[BASIC_RF_MAX_PAYLOAD_SIZE];
 static UINT8 pRxBuffer[BASIC_RF_MAX_PAYLOAD_SIZE];
 
-static UINT16 coordinator_address = 0x0000;
+static BOOL update_lc_service = TRUE;
 
 void InitP2_7(void){
 	P2DIR &= 0x7F;
@@ -34,7 +36,6 @@ void InitP2_7(void){
 
 int main(void)
 {
-	UINT8 status;
 	int n;
 
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer (good dog)
@@ -46,6 +47,9 @@ int main(void)
 	SPI_INIT();
 	InitP2_7();
 
+	halTimer_a_initialize(TIMER_CLKSRC_SMCLK, TIMER_MODE_UP);
+	// Each 1000 microseconds or each millisecond, a timer interruption will be risen
+	halTimer_a_setTicks(TICK_RATE);
 
 	// Wait for the user to select node address, and initialize for basic RF operation
 	halWait(1000);
@@ -74,7 +78,10 @@ int main(void)
     lc_initialize_client(&manager);
 
 	while ( TRUE ) {
-		lc_sending_service_update_client(&manager, &rfTxInfo, &rfRxInfo);
+		if ( update_lc_service ) {
+			lc_sending_service_update_client(&manager, &rfTxInfo, &rfRxInfo);
+			update_lc_service = FALSE;
+		}
 	}
 
 	return 0;
@@ -98,10 +105,26 @@ BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_ack_packet(BASIC_RF_RX_INFO *rx)
 	return rx;
 }
 
+
+/**
+ * Interruption Handler for Timer A
+ *
+ * This interruption handler uses TACCR0 and CCIFG
+ */
+#pragma vector=TIMERA0_VECTOR
+__interrupt void timer_a_interrupt_handler()
+{
+	halTimer_a_disableInterrupt();
+	update_lc_service = TRUE;
+	halTimer_a_enableInterrupt();
+}
+
+
 #pragma vector=PORT1_VECTOR
 __interrupt void fifo_rx(void){
 	hal_cc2420_rf_manage_interruption();
 }
+
 
 // Send temperature when button 2 is pressed
 #pragma vector=PORT2_VECTOR

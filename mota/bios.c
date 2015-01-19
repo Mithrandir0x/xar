@@ -54,10 +54,12 @@ int main(void)
 	// Wait for the user to select node address, and initialize for basic RF operation
 	halWait(1000);
 
+	lc_initialize_client(&manager);
+
 	hal_cc2420_rf_init(&rfRxInfo, RF_CHANNEL, PANID, MYADDR);
-	rfTxInfo.destPanId = PANID;
 
 	// Initalize common protocol parameters
+	rfTxInfo.destPanId = PANID;
 	rfTxInfo.length = PAYLOAD_SIZE;
 	rfTxInfo.ackRequest = FALSE;
 	rfTxInfo.pPayload = pTxBuffer;
@@ -73,9 +75,11 @@ int main(void)
 	SET_BLED();		//Blue LED: Low energy mode activated
 	SET_RLED();		//Red LED: Sent temperature packet
 
+	//Enable interrupts
     _enable_interrupt();
+    halTimer_a_enableInterrupt();
 
-    lc_initialize_client(&manager);
+
 
 	while ( TRUE ) {
 		if ( update_lc_service ) {
@@ -126,7 +130,7 @@ __interrupt void fifo_rx(void){
 }
 
 
-// Send temperature when button 2 is pressed
+// Button 2 pressed event
 #pragma vector=PORT2_VECTOR
 __interrupt void P2_ISR(void)
 {

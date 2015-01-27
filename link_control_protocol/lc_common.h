@@ -39,7 +39,7 @@ typedef struct {
 
 typedef struct {
 	UINT8 work_mode;
-	BOOL coordinator_address;
+	UINT16 coordinator_address;
 } LinkControlClientManager;
 
 typedef struct {

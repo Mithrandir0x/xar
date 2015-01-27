@@ -46,6 +46,7 @@ int main(void)
 	PORT_INIT();
 	SPI_INIT();
 	InitP2_7();
+	sht11_init();
 
 	halTimer_a_initialize(TIMER_CLKSRC_SMCLK, TIMER_MODE_UP);
 	// Each 1000 microseconds or each millisecond, a timer interruption will be risen
@@ -88,7 +89,6 @@ int main(void)
 		}
 	}
 
-	return 0;
 }
 
 BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_packet(BASIC_RF_RX_INFO *rx)
@@ -102,8 +102,8 @@ BASIC_RF_RX_INFO* hal_cc2420_rf_on_receive_ack_packet(BASIC_RF_RX_INFO *rx)
 {
 	if ( manager.work_mode == LC_WM_CLIENT_SYNC )
 	{
-		TOGGLE_YLED();
 		lc_set_work_mode_client(&manager, LC_WM_CLIENT_WAIT_VRT);
+		CLR_YLED();
 	}
 
 	return rx;

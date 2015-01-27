@@ -34,6 +34,8 @@ void lc_sending_service_update_client(LinkControlClientManager *manager, BASIC_R
 
 		lc_set_tx_node_response(tx, manager->coordinator_address);
 		hal_cc2420_rf_send_packet(tx);
+
+
 	}
 	else if ( manager->work_mode == LC_WM_CLIENT_SEND_VRT)
 	{
@@ -42,17 +44,16 @@ void lc_sending_service_update_client(LinkControlClientManager *manager, BASIC_R
 		lc_set_tx_vrt_started(tx, manager->coordinator_address);
 		hal_cc2420_rf_send_packet(tx);
 		lc_set_work_mode_client(manager, LC_WM_CLIENT_WAIT);
-		TOGGLE_BLED();
+		CLR_BLED();
 	}
 	else if ( manager->work_mode == LC_WM_CLIENT_SEND_DATA)
 	{
 		FASTSPI_UPD_STATUS(status);
-		sht11_init();
+
 		lc_set_tx_data_response(tx, manager->coordinator_address, sht11_temp());
-		sht11_off();
 		hal_cc2420_rf_send_packet(tx);
 		lc_set_work_mode_client(manager, LC_WM_CLIENT_WAIT);
-		TOGGLE_RLED();
+
 
 	}
 
@@ -65,8 +66,10 @@ void lc_reception_service_update_client(LinkControlClientManager *manager, BASIC
 
 	if ( rx->pPayload[0] == LC_PCK_BROADCAST_REQUEST )
 	{
-		manager->coordinator_address = rx->srcAddr;
-		lc_set_work_mode_client(manager, LC_WM_CLIENT_SYNC);
+		if (manager->work_mode == LC_WM_CLIENT_STARTED){
+			manager->coordinator_address = rx->srcAddr;
+			lc_set_work_mode_client(manager, LC_WM_CLIENT_SYNC);
+		}
 
 	}else if ( rx->pPayload[0] == LC_PCK_START_VRT ) //Low energy mode(not implemented)
 	{

@@ -21,7 +21,7 @@ void lc_set_tx_node_response(BASIC_RF_TX_INFO *tx, UINT16 destAddr)
 void lc_set_tx_start_vrt(BASIC_RF_TX_INFO *tx, UINT16 destAddr)
 {
 	tx->destPanId = rfSettings.panId;
-	tx->ackRequest = TRUE;
+	tx->ackRequest = FALSE;
 	tx->destAddr = destAddr;
 	tx->length = 1;
 	tx->pPayload[0] = LC_PCK_START_VRT;
@@ -30,7 +30,7 @@ void lc_set_tx_start_vrt(BASIC_RF_TX_INFO *tx, UINT16 destAddr)
 void lc_set_tx_vrt_started(BASIC_RF_TX_INFO *tx, UINT16 destAddr)
 {
 	tx->destPanId = rfSettings.panId;
-	tx->ackRequest = TRUE;
+	tx->ackRequest = FALSE;
 	tx->destAddr = destAddr;
 	tx->length = 1;
 	tx->pPayload[0] = LC_PCK_VRT_STARTED;
@@ -48,7 +48,7 @@ void lc_set_tx_data_request(BASIC_RF_TX_INFO *tx, UINT16 destAddr)
 void lc_set_tx_data_response(BASIC_RF_TX_INFO *tx, UINT16 destAddr, UINT16 temperature)
 {
 	tx->destPanId = rfSettings.panId;
-	tx->ackRequest = TRUE;
+	tx->ackRequest = FALSE;
 	tx->destAddr = destAddr;
 	tx->length = 3;
 	tx->pPayload[0] = LC_PCK_DATA_RESPONSE;
